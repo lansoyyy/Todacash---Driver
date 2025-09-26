@@ -1,3 +1,3 @@
-const apiKey = 'AIzaSyDdXaMN5htLGHo8BkCfefPpuTauwHGXItU';
+const apiKey = 'AIzaSyAlbz0YMydxJhMLt3_Ru1TZNT6rPbxc_UU';
 
-const kGoogleApiKey = 'AIzaSyDdXaMN5htLGHo8BkCfefPpuTauwHGXItU';
+const kGoogleApiKey = 'AIzaSyAlbz0YMydxJhMLt3_Ru1TZNT6rPbxc_UU';
