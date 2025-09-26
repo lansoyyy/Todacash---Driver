@@ -44,7 +44,6 @@ class _SplashScreenState extends State<SplashScreen> {
         height: double.infinity,
         width: double.infinity,
         decoration: const BoxDecoration(
-            color: grey,
             image: DecorationImage(
                 opacity: 150,
                 image: AssetImage('assets/images/newimg.jpg'),

@@ -41,14 +41,13 @@ class _SignupScreenState extends State<SignupScreen> {
   final platenumberController = TextEditingController();
 
   List<String> motorbikeBrands = [
-    'Honda',
-    'Yamaha',
-    'Suzuki',
-    'Kymco',
-    'Sym',
-    'Rusi',
-    'TVS',
-    'Kawasaki'
+    "Honda",
+    "Kawasaki",
+    "Bajaj",
+    "TVS",
+    "Yamaha",
+    "Rusi",
+    "MotorStar",
   ];
 
   String? selectedBrand;
@@ -158,7 +157,9 @@ class _SignupScreenState extends State<SignupScreen> {
                     height: 10,
                   ),
                   TextRegular(
-                      text: 'Vehicle Model', fontSize: 12, color: Colors.white),
+                      text: 'Tricycle Model',
+                      fontSize: 12,
+                      color: Colors.white),
                   const SizedBox(
                     height: 5,
                   ),
@@ -197,7 +198,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                   TextFieldWidget(
                     inputType: TextInputType.streetAddress,
-                    label: 'Plate Number of Vehicle',
+                    label: 'Plate Number of Tricycle',
                     controller: platenumberController,
                     validator: (value) {
                       if (value == null || value.isEmpty) {

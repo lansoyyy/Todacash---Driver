@@ -96,59 +96,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               children: [
                 StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance
-                        .collection('Delivery')
-                        .where('driverId',
-                            isEqualTo: FirebaseAuth.instance.currentUser!.uid)
-                        .where('status', isEqualTo: 'Pending')
-                        .snapshots(),
-                    builder: (BuildContext context,
-                        AsyncSnapshot<QuerySnapshot> snapshot) {
-                      if (snapshot.hasError) {
-                        print('error');
-                        return const Center(child: Text('Error'));
-                      }
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const SizedBox();
-                      }
-
-                      final data = snapshot.requireData;
-                      return FloatingActionButton(
-                          backgroundColor: Colors.white,
-                          onPressed: (() {
-                            if (data.docs.isNotEmpty) {
-                              Navigator.of(context1).push(MaterialPageRoute(
-                                  builder: (context) => const DeliveryPage()));
-                            } else {
-                              showToast('No bookings for delivery');
-                            }
-                          }),
-                          child: b.Badge(
-                            showBadge: data.docs.isNotEmpty,
-                            badgeContent: TextRegular(
-                                text: data.docs.length.toString(),
-                                fontSize: 12,
-                                color: Colors.white),
-                            badgeStyle:
-                                b.BadgeStyle(badgeColor: Colors.amber[600]!),
-                            child: AvatarGlow(
-                              animate: data.docs.isNotEmpty,
-                              glowColor: Colors.amber,
-                              duration: const Duration(milliseconds: 2000),
-                              repeat: true,
-                              child: Icon(
-                                Icons.delivery_dining_outlined,
-                                color: data.docs.isNotEmpty
-                                    ? Colors.amber[600]
-                                    : grey,
-                              ),
-                            ),
-                          ));
-                    }),
-                const SizedBox(
-                  height: 15,
-                ),
-                StreamBuilder<QuerySnapshot>(
-                    stream: FirebaseFirestore.instance
                         .collection('Bookings')
                         .where('driverId',
                             isEqualTo: FirebaseAuth.instance.currentUser!.uid)
