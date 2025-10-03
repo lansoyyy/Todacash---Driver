@@ -305,6 +305,59 @@ class _TrackingOfUserPageState extends State<TrackingOfUserPage> {
                     ),
                   ),
                 ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 20),
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Visibility(
+                      visible: passengerOnBoard,
+                      child: ButtonWidget(
+                          radius: 100,
+                          color: Colors.green,
+                          opacity: 1,
+                          label: 'Confirm Dropoff',
+                          onPressed: () {
+                            showDialog(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                      title: const Text(
+                                        'Are you sure you want to confirm dropoff?',
+                                        style: TextStyle(
+                                            fontFamily: 'QBold',
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      actions: <Widget>[
+                                        MaterialButton(
+                                          onPressed: () =>
+                                              Navigator.of(context).pop(true),
+                                          child: const Text(
+                                            'Close',
+                                            style: TextStyle(
+                                                fontFamily: 'QRegular',
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                        MaterialButton(
+                                          onPressed: () {
+                                            Navigator.of(context)
+                                                .pushReplacement(
+                                                    MaterialPageRoute(
+                                                        builder: (context) =>
+                                                            const HomeScreen()));
+                                          },
+                                          child: const Text(
+                                            'Continue',
+                                            style: TextStyle(
+                                                fontFamily: 'QRegular',
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                      ],
+                                    ));
+                          }),
+                    ),
+                  ),
+                ),
               ],
             )
           : const Center(
