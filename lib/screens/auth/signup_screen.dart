@@ -15,6 +15,9 @@ import '../../widgets/textfield_widget.dart';
 import '../../widgets/toast_widget.dart';
 import '../splashtohome_screen.dart';
 import 'login_screen.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:io';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -39,6 +42,10 @@ class _SignupScreenState extends State<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final platenumberController = TextEditingController();
+
+  File? _licenseImage;
+  String? _licenseImageUrl;
+  bool _isUploading = false;
 
   List<String> motorbikeBrands = [
     "Honda",
@@ -239,18 +246,145 @@ class _SignupScreenState extends State<SignupScreen> {
                     },
                   ),
                   const SizedBox(
+                    height: 10,
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TextBold(
+                            text: "Driver's License",
+                            fontSize: 16,
+                            color: Colors.black87),
+                        const SizedBox(height: 10),
+                        GestureDetector(
+                          onTap: _pickLicenseImage,
+                          child: Container(
+                            height: 150,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey),
+                              borderRadius: BorderRadius.circular(8),
+                              color: Colors.grey[100],
+                            ),
+                            child: _licenseImage != null
+                                ? Stack(
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.file(
+                                          _licenseImage!,
+                                          width: double.infinity,
+                                          height: double.infinity,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                      Positioned(
+                                        top: 5,
+                                        right: 5,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              _licenseImage = null;
+                                              _licenseImageUrl = null;
+                                            });
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.all(5),
+                                            decoration: const BoxDecoration(
+                                              color: Colors.red,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(
+                                              Icons.close,
+                                              color: Colors.white,
+                                              size: 20,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.camera_alt,
+                                        size: 40,
+                                        color: Colors.grey[600],
+                                      ),
+                                      const SizedBox(height: 10),
+                                      Text(
+                                        'Tap to upload license',
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                        if (_licenseImage == null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 5),
+                            child: Text(
+                              'Please upload your driver\'s license',
+                              style: TextStyle(
+                                color: Colors.red[700],
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(
                     height: 25,
                   ),
                   Center(
-                    child: ButtonWidget(
-                      color: black,
-                      label: 'Signup',
-                      onPressed: (() {
-                        if (_formKey.currentState!.validate()) {
-                          register(context);
-                        }
-                      }),
-                    ),
+                    child: _isUploading
+                        ? Container(
+                            padding: const EdgeInsets.all(15),
+                            decoration: BoxDecoration(
+                              color: black,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                TextRegular(
+                                  text: 'Uploading License...',
+                                  fontSize: 14,
+                                  color: Colors.white,
+                                ),
+                              ],
+                            ),
+                          )
+                        : ButtonWidget(
+                            color: black,
+                            label: 'Signup',
+                            onPressed: (() {
+                              if (_formKey.currentState!.validate()) {
+                                register(context);
+                              }
+                            }),
+                          ),
                   ),
                   const SizedBox(
                     height: 10,
@@ -309,14 +443,68 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
+  Future<void> _pickLicenseImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
+
+    if (image != null) {
+      setState(() {
+        _licenseImage = File(image.path);
+      });
+    }
+  }
+
+  Future<String?> _uploadLicenseToStorage() async {
+    if (_licenseImage == null) return null;
+
+    try {
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child('driver_licenses')
+          .child('${FirebaseAuth.instance.currentUser!.uid}.jpg');
+
+      final uploadTask = await ref.putFile(_licenseImage!);
+      return await uploadTask.ref.getDownloadURL();
+    } catch (e) {
+      showToast('Error uploading license: $e');
+      return null;
+    }
+  }
+
   register(context) async {
+    if (_licenseImage == null) {
+      showToast('Please upload your driver\'s license');
+      return;
+    }
+
+    setState(() {
+      _isUploading = true;
+    });
+
     try {
       await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: '${emailController.text}@driver.phara',
           password: passwordController.text);
 
-      signup(nameController.text, numberController.text, addressController.text,
-          emailController.text, selectedBrand, platenumberController.text);
+      _licenseImageUrl = await _uploadLicenseToStorage();
+
+      if (_licenseImageUrl == null) {
+        showToast('Failed to upload license image');
+        return;
+      }
+
+      signup(
+          nameController.text,
+          numberController.text,
+          addressController.text,
+          emailController.text,
+          selectedBrand,
+          platenumberController.text,
+          passwordController.text,
+          _licenseImageUrl);
       await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: '${emailController.text}@driver.phara',
           password: passwordController.text);
@@ -335,6 +523,10 @@ class _SignupScreenState extends State<SignupScreen> {
       }
     } on Exception catch (e) {
       showToast("An error occurred: $e");
+    } finally {
+      setState(() {
+        _isUploading = false;
+      });
     }
   }
 

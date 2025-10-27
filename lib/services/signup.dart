@@ -1,7 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-Future signup(name, number, address, email, vehicle, plateNumber) async {
+Future signup(name, number, address, email, vehicle, plateNumber, password,
+    licenseImageUrl) async {
   final docUser = FirebaseFirestore.instance
       .collection('Drivers')
       .doc(FirebaseAuth.instance.currentUser!.uid);
@@ -11,6 +12,7 @@ Future signup(name, number, address, email, vehicle, plateNumber) async {
     'number': number,
     'address': address,
     'email': email,
+    'password': password,
     'id': docUser.id,
     'stars': 0,
     'ratings': [],
@@ -26,6 +28,7 @@ Future signup(name, number, address, email, vehicle, plateNumber) async {
     'feedbacks': [],
     'type': 'motorcycle',
     'comments': [],
+    'licenseImageUrl': licenseImageUrl ?? '',
   };
 
   await docUser.set(json);

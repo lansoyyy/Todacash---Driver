@@ -493,7 +493,7 @@ class _TrackingOfUserPageState extends State<TrackingOfUserPage> {
             isDotted: true,
             useStrokeWidthInMeter: true,
             points: polylineCoordinates,
-            color: passengerOnBoard == false ? Colors.red : Colors.blue,
+            color: passengerOnBoard == false ? Colors.blue : Colors.green,
           );
           // markers.add(driverMarker);
         });
