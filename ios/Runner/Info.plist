@@ -47,5 +47,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>io.flutter.embedded_views_preview</key>
+	<true/>
+	<key>GMSServicesProvideAPIKey</key>
+	<string>AIzaSyAlbz0YMydxJhMLt3_Ru1TZNT6rPbxc_UU</string>
 </dict>
 </plist>

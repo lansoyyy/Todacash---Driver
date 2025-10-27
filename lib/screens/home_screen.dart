@@ -6,8 +6,7 @@ import 'package:badges/badges.dart' as b;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:geocoding/geocoding.dart';
@@ -57,8 +56,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     getDrivers();
   }
 
-  // final Completer<GoogleMapController> _controller =
-  //     Completer<GoogleMapController>();
+  final Completer<GoogleMapController> _controller =
+      Completer<GoogleMapController>();
 
   late String currentAddress;
 
@@ -67,9 +66,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   var hasLoaded = false;
 
-  // GoogleMapController? mapController;
-
-  // Set<Marker> markers = {};
+  GoogleMapController? mapController;
 
   var _value = false;
 
@@ -78,16 +75,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       .doc(FirebaseAuth.instance.currentUser!.uid)
       .snapshots();
 
-  final mapController = MapController();
+  Set<Marker> myMarkers = {};
 
-  List<Marker> myMarkers = [];
-
-  late List<CircleMarker> myCircles = [];
+  Set<Circle> myCircles = {};
 
   @override
   Widget build(BuildContext context1) {
-    // final CameraPosition camPosition = CameraPosition(
-    //     target: LatLng(lat, long), zoom: 16, bearing: 80, tilt: 45);
+    final CameraPosition camPosition = CameraPosition(
+        target: LatLng(lat, long), zoom: 16, bearing: 80, tilt: 45);
 
     return hasLoaded && lat != 0
         ? Scaffold(
@@ -346,32 +341,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
             body: Stack(
               children: [
-                // CustomGoogleMapMarkerBuilder(
-                //     screenshotDelay: const Duration(seconds: 5),
-                //     customMarkers: _customMarkers,
-                //     builder: (BuildContext context, Set<Marker>? markers1) {
-                //       if (markers1 == null) {
-                //         return Center(child: SpinKitPulse());
-                //       }
-                //       return GoogleMap(
-                //         buildingsEnabled: true,
-                //         compassEnabled: true,
-                //         myLocationButtonEnabled: true,
-                //         myLocationEnabled: true,
-                //         markers: markers1,
-                //         mapType: MapType.normal,
-                //         zoomControlsEnabled: false,
-                //         initialCameraPosition: camPosition,
-                //         onMapCreated: (GoogleMapController controller) {
-                //           _controller.complete(controller);
-                //           setState(() {
-                //             myLocationMarker(lat, long);
-                //             mapController = controller;
-                //           });
-                //         },
-                //       );
-                //     }),
-
                 Builder(builder: (context) {
                   Geolocator.getCurrentPosition().then((position) {
                     FirebaseFirestore.instance
@@ -386,25 +355,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   }).catchError((error) {
                     print('Error getting location: $error');
                   });
-                  return FlutterMap(
-                    mapController: mapController,
-                    options: MapOptions(
-                      center: LatLng(lat, long),
-                      zoom: 18.0,
-                    ),
-                    children: [
-                      TileLayer(
-                        urlTemplate:
-                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                        userAgentPackageName: 'com.example.phara_driver',
-                      ),
-                      MarkerLayer(
-                        markers: myMarkers,
-                      ),
-                      CircleLayer(
-                        circles: myCircles,
-                      ),
-                    ],
+                  return GoogleMap(
+                    buildingsEnabled: true,
+                    compassEnabled: true,
+                    myLocationButtonEnabled: true,
+                    myLocationEnabled: true,
+                    markers: myMarkers,
+                    circles: myCircles,
+                    mapType: MapType.normal,
+                    zoomControlsEnabled: false,
+                    initialCameraPosition: camPosition,
+                    onMapCreated: (GoogleMapController controller) {
+                      _controller.complete(controller);
+                      setState(() {
+                        mapController = controller;
+                        myLocationMarker(lat, long);
+                      });
+                    },
                   );
                 }),
                 Padding(
@@ -473,17 +440,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           );
   }
 
-  // myLocationMarker(double lat, double lang) async {
-  //   Marker mylocationMarker = Marker(
-  //       markerId: const MarkerId('currentLocation'),
-  //       infoWindow: const InfoWindow(
-  //         title: 'Your Current Location',
-  //       ),
-  //       icon: BitmapDescriptor.defaultMarker,
-  //       position: LatLng(lat, lang));
+  myLocationMarker(double lat, double lang) async {
+    Marker mylocationMarker = Marker(
+        markerId: const MarkerId('currentLocation'),
+        infoWindow: const InfoWindow(
+          title: 'Your Current Location',
+        ),
+        icon: BitmapDescriptor.defaultMarker,
+        position: LatLng(lat, lang));
 
-  //   markers.add(mylocationMarker);
-  // }
+    myMarkers.add(mylocationMarker);
+  }
 
   getLocation() async {
     Position position = await Geolocator.getCurrentPosition(
@@ -503,14 +470,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     myCircles.clear();
     myCircles.add(
-      CircleMarker(
-          point: LatLng(position.latitude, position.longitude),
+      Circle(
+          circleId: const CircleId('currentLocation'),
+          center: LatLng(position.latitude, position.longitude),
           radius: 5,
-          borderStrokeWidth: 1,
-          borderColor: Colors.black,
-          useRadiusInMeter: true,
-          color: Colors.blue),
+          strokeWidth: 1,
+          strokeColor: Colors.black,
+          fillColor: Colors.blue),
     );
+
+    // Update current location marker
+    myMarkers
+        .removeWhere((marker) => marker.markerId.value == 'currentLocation');
+    myLocationMarker(position.latitude, position.longitude);
 
     Timer.periodic(const Duration(minutes: 5), (timer) {
       Geolocator.getCurrentPosition().then((position) {
@@ -581,29 +553,37 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                                 showToast(
                                                     'The booking of this user was rejected! Cannot procceed');
                                               } else {
-                                                mapController.move(
-                                                    LatLng(
-                                                        data.docs[index][
-                                                                'originCoordinates']
-                                                            ['lat'],
-                                                        data.docs[index][
-                                                                'originCoordinates']
-                                                            ['long']),
-                                                    18);
+                                                mapController?.animateCamera(
+                                                    CameraUpdate.newCameraPosition(
+                                                        CameraPosition(
+                                                            target: LatLng(
+                                                                data.docs[index]
+                                                                        [
+                                                                        'originCoordinates']
+                                                                    ['lat'],
+                                                                data.docs[index]
+                                                                        [
+                                                                        'originCoordinates']
+                                                                    ['long']),
+                                                            zoom: 18)));
                                                 myMarkers.add(Marker(
-                                                  point: LatLng(
+                                                  markerId: MarkerId(
+                                                      'booking_${data.docs[index].id}'),
+                                                  position: LatLng(
                                                       data.docs[index][
                                                               'originCoordinates']
                                                           ['lat'],
                                                       data.docs[index][
                                                               'originCoordinates']
                                                           ['long']),
-                                                  builder: (context) =>
-                                                      const Icon(
-                                                    Icons
-                                                        .location_history_rounded,
-                                                    size: 42,
-                                                  ),
+                                                  icon: BitmapDescriptor
+                                                      .defaultMarkerWithHue(
+                                                          BitmapDescriptor
+                                                              .hueGreen),
+                                                  infoWindow: InfoWindow(
+                                                      title: 'Pickup Location',
+                                                      snippet: data.docs[index]
+                                                          ['origin']),
                                                 ));
                                                 showDialog(
                                                     context: context,
@@ -689,8 +669,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                                               Navigator.pop(
                                                                   context1);
                                                               setState(() {
-                                                                myMarkers
-                                                                    .clear();
+                                                                myMarkers.removeWhere(
+                                                                    (marker) => marker
+                                                                        .markerId
+                                                                        .value
+                                                                        .startsWith(
+                                                                            'booking_'));
                                                               });
                                                               await FirebaseFirestore
                                                                   .instance
@@ -727,11 +711,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                                                 ]),
                                                               });
 
-                                                              mapController.move(
-                                                                  LatLng(
+                                                              mapController?.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
+                                                                  target: LatLng(
                                                                       data.docs[index]
-                                                                              [
-                                                                              'originCoordinates']
+                                                                              ['originCoordinates']
                                                                           [
                                                                           'lat'],
                                                                       data.docs[index]
@@ -739,7 +722,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                                                               'originCoordinates']
                                                                           [
                                                                           'long']),
-                                                                  18);
+                                                                  zoom: 18)));
                                                             },
                                                             child: TextRegular(
                                                                 text:
@@ -1063,11 +1046,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       for (var doc in querySnapshot.docs) {
         setState(() {
           myMarkers.add(Marker(
-            point: LatLng(doc['location']['lat'], doc['location']['long']),
-            builder: (context) => const Icon(
-              Icons.location_history_rounded,
-              size: 42,
-            ),
+            markerId: MarkerId('driver_${doc.id}'),
+            position: LatLng(doc['location']['lat'], doc['location']['long']),
+            icon: BitmapDescriptor.defaultMarkerWithHue(
+                BitmapDescriptor.hueAzure),
           ));
         });
       }

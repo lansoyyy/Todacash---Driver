@@ -58,11 +58,8 @@ dependencies:
   pie_chart:
   syncfusion_flutter_charts: ^29.1.38
   location: ^8.0.1
-  custom_map_markers:
   flutter_spinkit:
   avatar_glow:
-  huawei_map:
-  flutter_map:
   url_launcher: ^6.1.11
   flutter_background_service:
   audioplayers:
