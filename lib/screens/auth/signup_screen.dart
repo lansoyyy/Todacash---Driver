@@ -188,12 +188,16 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                   TextFieldWidget(
                     textCapitalization: TextCapitalization.none,
-                    inputType: TextInputType.streetAddress,
-                    label: 'Username',
+                    inputType: TextInputType.emailAddress,
+                    label: 'Email',
                     controller: emailController,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter an address';
+                        return 'Please enter an email';
+                      }
+                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                          .hasMatch(value)) {
+                        return 'Please enter a valid email';
                       }
                       return null;
                     },
@@ -486,8 +490,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
     try {
       await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: '${emailController.text}@driver.phara',
-          password: passwordController.text);
+          email: emailController.text, password: passwordController.text);
 
       _licenseImageUrl = await _uploadLicenseToStorage();
 
@@ -506,18 +509,18 @@ class _SignupScreenState extends State<SignupScreen> {
           passwordController.text,
           _licenseImageUrl);
       await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: '${emailController.text}@driver.phara',
-          password: passwordController.text);
-      showToast("Registered Succesfully!");
+          email: emailController.text, password: passwordController.text);
+      showToast(
+          "Registered Successfully! Your account is now pending verification.");
       Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const SplashToHomeScreen()));
+          MaterialPageRoute(builder: (context) => const LoginScreen()));
     } on FirebaseAuthException catch (e) {
       if (e.code == 'weak-password') {
         showToast('The password provided is too weak.');
       } else if (e.code == 'email-already-in-use') {
-        showToast('The account already exists for that username.');
+        showToast('The account already exists for that email.');
       } else if (e.code == 'invalid-email') {
-        showToast('The username is not valid.');
+        showToast('The email is not valid.');
       } else {
         showToast(e.toString());
       }

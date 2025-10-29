@@ -57,14 +57,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   TextFieldWidget(
                     textCapitalization: TextCapitalization.none,
-                    hint: 'Username',
-                    label: 'Username',
+                    inputType: TextInputType.emailAddress,
+                    hint: 'Email',
+                    label: 'Email',
                     controller: emailController,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter a user';
+                        return 'Please enter an email';
                       }
-
+                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                          .hasMatch(value)) {
+                        return 'Please enter a valid email';
+                      }
                       return null;
                     },
                   ),
@@ -190,20 +194,21 @@ class _LoginScreenState extends State<LoginScreen> {
           builder: (context, setState) {
             return AlertDialog(
               title: TextBold(
-                  text: 'Retrieve Password', fontSize: 18, color: Colors.black),
+                  text: 'Reset Password', fontSize: 18, color: Colors.black),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextRegular(
-                    text: 'Enter your username to retrieve your password',
+                    text: 'Enter your email to reset your password',
                     fontSize: 14,
                     color: Colors.grey[700]!,
                   ),
                   const SizedBox(height: 20),
                   TextField(
                     controller: forgotPasswordController,
+                    keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
-                      labelText: 'Username',
+                      labelText: 'Email',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -255,7 +260,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             _isRetrievingPassword = true;
                           });
 
-                          final success = await _retrievePassword(context);
+                          final success = await _resetPassword(context);
 
                           setState(() {
                             _isRetrievingPassword = false;
@@ -273,7 +278,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   child: TextRegular(
-                    text: 'Retrieve Password',
+                    text: 'Reset Password',
                     fontSize: 14,
                     color: Colors.white,
                   ),
@@ -286,111 +291,29 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Future<bool> _retrievePassword(BuildContext context) async {
-    final username = forgotPasswordController.text.trim();
+  Future<bool> _resetPassword(BuildContext context) async {
+    final email = forgotPasswordController.text.trim();
 
-    if (username.isEmpty) {
-      showToast('Please enter your username');
+    if (email.isEmpty) {
+      showToast('Please enter your email');
       return false;
     }
 
     try {
-      // Query Firestore to find the user by username (email field)
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('Drivers')
-          .where('email', isEqualTo: username)
-          .limit(1)
-          .get();
+      // Send password reset email
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
 
-      if (querySnapshot.docs.isEmpty) {
-        showToast('No user found with that username');
-        return false;
-      }
-
-      final userData = querySnapshot.docs.first.data();
-      final password = userData['password'] as String?;
-
-      if (password == null || password.isEmpty) {
-        showToast('Password not found for this user');
-        return false;
-      }
-
-      // Show password in a dialog
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: TextBold(
-                text: 'Your Password', fontSize: 18, color: Colors.black),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextRegular(
-                  text: 'Username: $username',
-                  fontSize: 14,
-                  color: Colors.grey[700]!,
-                ),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.all(15),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextBold(
-                          text: password,
-                          fontSize: 16,
-                          color: Colors.black,
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () async {
-                          await Clipboard.setData(
-                              ClipboardData(text: password));
-                          showToast('Password copied to clipboard');
-                        },
-                        icon: const Icon(Icons.copy, color: Colors.black),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 15),
-                TextRegular(
-                  text:
-                      'Please copy this password and use it to login. Consider changing it after logging in for security.',
-                  fontSize: 12,
-                  color: Colors.red[600]!,
-                ),
-              ],
-            ),
-            actions: [
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: black,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: TextRegular(
-                  text: 'OK',
-                  fontSize: 14,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          );
-        },
-      );
-
+      showToast('Password reset email sent! Please check your inbox.');
       return true;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'user-not-found') {
+        showToast('No user found with that email.');
+      } else if (e.code == 'invalid-email') {
+        showToast('The email is not valid.');
+      } else {
+        showToast('An error occurred: ${e.message}');
+      }
+      return false;
     } catch (e) {
       showToast('An error occurred: $e');
       return false;
@@ -404,17 +327,41 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: '${emailController.text}@driver.phara',
-          password: passwordController.text);
+          email: emailController.text, password: passwordController.text);
+
+      // Check if user is verified
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('Drivers')
+            .doc(user.uid)
+            .get();
+
+        if (userDoc.exists) {
+          final userData = userDoc.data() as Map<String, dynamic>;
+          final isVerified = userData['isVerified'] as bool? ?? false;
+
+          if (!isVerified) {
+            await FirebaseAuth.instance.signOut();
+            showToast(
+                "Your account is pending verification. Please wait for admin approval.");
+            setState(() {
+              _isLoading = false;
+            });
+            return;
+          }
+        }
+      }
+
       Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const SplashToHomeScreen()));
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
-        showToast("No user found with that username.");
+        showToast("No user found with that email.");
       } else if (e.code == 'wrong-password') {
         showToast("Wrong password provided for that user.");
       } else if (e.code == 'invalid-email') {
-        showToast("Invalid username provided.");
+        showToast("Invalid email provided.");
       } else if (e.code == 'user-disabled') {
         showToast("User account has been disabled.");
       } else {
