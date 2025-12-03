@@ -23,17 +23,14 @@ class _SplashScreenState extends State<SplashScreen> {
 
     determinePosition();
     Timer(const Duration(seconds: 5), () async {
-      Navigator.of(context).pushReplacement(MaterialPageRoute(
-        builder: (context) => StreamBuilder<User?>(
-            stream: FirebaseAuth.instance.authStateChanges(),
-            builder: (context, snapshot) {
-              if (snapshot.hasData) {
-                return const HomeScreen();
-              } else {
-                return const LandingScreen();
-              }
-            }),
-      ));
+      final user = FirebaseAuth.instance.currentUser;
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) =>
+              user != null ? const HomeScreen() : const LandingScreen(),
+        ),
+      );
     });
   }
 
