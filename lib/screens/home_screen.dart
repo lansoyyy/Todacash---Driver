@@ -499,6 +499,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   showBookingData(dynamic data) {
+    final rootNavigator = Navigator.of(context);
     showDialog(
         context: context,
         builder: (context) {
@@ -767,10 +768,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                                                       Navigator.of(
                                                                               context1)
                                                                           .pop();
-                                                                      Navigator.of(
-                                                                              context)
-                                                                          .pushReplacement(
-                                                                              MaterialPageRoute(builder: (context1) => TrackingOfUserPage(tripDetails: data.docs[index])));
+                                                                      rootNavigator.pushReplacement(MaterialPageRoute(
+                                                                          builder: (ctx) =>
+                                                                              TrackingOfUserPage(tripDetails: data.docs[index])));
                                                                       await FirebaseFirestore
                                                                           .instance
                                                                           .collection(
